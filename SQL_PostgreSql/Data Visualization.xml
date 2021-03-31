@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<homework>
+<item>
+	<id>q4a</id>
+	<question>
+		Plot a linegraph with two lines, one for the number of journal papers and the other for the number of conference paper in every decade starting from 1950. Therefore the decades will be 1950-1959, 1960-1969, ...., 2000-2009, 2010-.
+	</question>
+	<sql><![CDATA[
+        WITH T1 AS
+		(
+			SELECT floor(ar.year/10)*10 AS decade
+			FROM Article ar
+			WHERE ar.year >= 1950 AND ar.year <= 2019
+		),
+			T2 AS
+		(
+			SELECT floor(i.year/10)*10 AS decade
+			FROM Inproceedings i
+			WHERE i.year >= 1950 AND i.year <= 2019
+		),
+			T3 AS
+		(
+			SELECT decade, count(*) AS num_journals
+			FROM T1
+			GROUP BY T1.decade
+		),
+			T4 AS
+		(
+			SELECT decade, count(*) AS num_confs
+			FROM T2
+			GROUP BY T2.decade
+		)
+		SELECT decade, num_journals, num_confs
+		FROM T3 NATURAL JOIN T4
+		ORDER BY decade;
+	]]></sql>
+	<result>
+        ???
+        <!-- decade | num_journals | num_confs 
+		   1950 |         1730 |        80
+		   1960 |         9986 |      1753
+		   1970 |        26873 |     12907
+		   1980 |        66395 |     52347
+		   1990 |       196526 |    222822
+		   2000 |       546238 |    796711
+		   2010 |      1254245 |   1371642 -->
+	</result>
+</item>
+<item>
+	<id>q4b</id>
+	<question>
+	/* Q4b.
+	 * Plot a barchart showing how the average number of collaborators varied in
+	 * these decades for conference papers in each of the four areas in Q3.
+	 * Again, the decades will be 1950-1959, 1960-1969, ...., 2000-2009, 2010-.
+	 * But for every decade, there will be four bars one for each area (do not
+	 * consider UNKNOWN), the height of the bars will denote the average number of
+	 * collaborators. */
+	</question>
+	<sql><![CDATA[
+        WITH paper AS
+		(
+			(SELECT floor(i.year/10)*10 AS decade, i.pubkey, author
+			FROM Inproceedings i LEFT OUTER JOIN Authorship au ON i.pubkey = au.pubkey
+			WHERE i.year >= 1950 AND i.year <= 2019)
+			UNION
+			(SELECT floor(ar.year/10)*10 AS decade, ar.pubkey, author
+			FROM Article ar LEFT OUTER JOIN Authorship au ON ar.pubkey = au.pubkey
+			WHERE ar.year >= 1950 AND ar.year <= 2019) 
+		),
+			conf_paper AS
+		(
+			SELECT floor(i.year/10)*10 AS decade, Area, i.pubkey, author
+			FROM Inproceedings i NATURAL JOIN Authorship au
+			WHERE i.year >= 1950 AND i.year <= 2019 AND i.area != 'UNKNOWN'
+		),
+			paper_by_author_i AS
+		(
+			SELECT decade, pubkey, author
+			FROM paper
+			WHERE author IN (
+				SELECT DISTINCT author
+				FROM conf_paper
+				)
+		),
+			collaborator AS
+		(
+			SELECT paper.decade, paper.pubkey, paper_by_author_i.author AS ori_author, paper.author AS collab
+			FROM paper, paper_by_author_i
+			WHERE paper.pubkey = paper_by_author_i.pubkey AND paper.author != paper_by_author_i.author
+		),	
+			temp AS
+		(
+			SELECT conf_paper.decade, conf_paper.Area, conf_paper.author, COUNT(DISTINCT collaborator.collab) AS num_collab
+			FROM conf_paper, collaborator
+			WHERE conf_paper.decade = collaborator.decade AND conf_paper.author = collaborator.ori_author
+			GROUP BY conf_paper.decade, conf_paper.Area, conf_paper.author
+		)
+		SELECT decade, Area, AVG(num_collab) AS avgcollab
+		FROM temp
+		GROUP BY decade, Area
+		ORDER BY decade, Area;
+	]]></sql>
+	<result>
+        ???
+        <!-- decade |   area   |      avgcollab      
+		   1960 | ML-AI    |  2.3246753246753247
+		   1960 | Theory   |  2.1000000000000000
+		   1970 | Database |  6.0755148741418764
+		   1970 | ML-AI    |  4.0685640362225097
+		   1970 | Systems  |  4.6941176470588235
+		   1970 | Theory   |  4.9735772357723577
+		   1980 | Database |  8.5964240102171137
+		   1980 | ML-AI    |  5.6149448754593712
+		   1980 | Systems  |  7.0547730829420970
+		   1980 | Theory   |  9.7067039106145251
+		   1990 | Database | 14.4216954022988506
+		   1990 | ML-AI    | 11.4081731938701046
+		   1990 | Systems  | 15.2704646017699115
+		   1990 | Theory   | 15.7817172148654421
+		   2000 | Database | 28.4278140293637847
+		   2000 | ML-AI    | 25.1323809523809524
+		   2000 | Systems  | 29.6412098298676749
+		   2000 | Theory   | 25.4420412301453194
+		   2010 | Database | 65.2100129106297518
+		   2010 | ML-AI    | 56.7873441543166314
+		   2010 | Systems  | 61.7376304274654998
+		   2010 | Theory   | 36.4411013340902640 -->
+	</result>
+</item>
+<item>
+	<id>q4c</id>
+	<question>
+	 /*
+	  * q4c. calculate the trend of average number of coauthors in each area
+	  */
+	</question>
+	<sql><![CDATA[
+        WITH join_table AS
+		(
+			SELECT floor(i.year/10)*10 AS decade, Area, i.pubkey, COUNT(author) AS num_author
+			FROM Inproceedings i NATURAL JOIN Authorship au
+			WHERE i.year >= 1950 AND i.year <= 2019 AND i.area != 'UNKNOWN'
+			GROUP BY decade, Area, i.pubkey
+		),
+			temp AS
+		(
+			SELECT decade, Area, AVG(num_author) AS avg_author
+			FROM join_table
+			GROUP BY decade, Area
+		)
+		SELECT Area, 
+		(COUNT(DISTINCT decade) * SUM(decade * avg_author) - SUM(decade)*SUM(avg_author))/(COUNT(DISTINCT decade) * SUM(power(decade, 2)) - power(SUM(decade), 2)) AS slope
+		FROM temp
+		GROUP BY Area;
+	]]></sql>
+	<result>
+        ???
+         <!--   area   |       slope        
+		 Database | 0.0580306347149482
+		 ML-AI    | 0.0335988384822184
+		 Systems  | 0.0691558322900499
+		 Theory   | 0.0304802544844681 -->
+
+	</result>
+</item>
+</homework>
