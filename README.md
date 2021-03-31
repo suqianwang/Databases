@@ -5,9 +5,9 @@ This repository contains three database projects that use SQL, XML, PostgreSQL, 
 ## SQL and PostgreSQL
 In this project, I used PostgreSQL database for my data processing tasks:
 
-*Pre-process Raw Data: I used python library psycopg2 to connect to my postgres database in which I created different tables based on the raw data schema for future storage. Then I used python library xml.sax to parse the xml file, clean the raw data, and store them in my tables.
-*Data Analysis: I performed several SQL queries to analyze the data. Queries including getting the number of tuples of each table, changing the schema by adding a column and populating it, and more complicated queries on multiple tables to gather information.
-*Data Visualization: I performed more queries and visualized the result using table, line graph, and barchart.
+* Pre-process Raw Data: I used python library psycopg2 to connect to my postgres database in which I created different tables based on the raw data schema for future storage. Then I used python library xml.sax to parse the xml file, clean the raw data, and store them in my tables.
+* Data Analysis: I performed several SQL queries to analyze the data. Queries including getting the number of tuples of each table, changing the schema by adding a column and populating it, and more complicated queries on multiple tables to gather information.
+* Data Visualization: I performed more queries and visualized the result using table, line graph, and barchart.
 
 ## MongoDB
 In this project, I used MongoDB to store my data. I wrote several queries analyzing the data. 
